@@ -15,10 +15,21 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      rabbitmq: 
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+        options: >-
+          --hostname rabbitmq
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3.2.0
+
+    - name: Install wait-for-it
+      run: |
+        wget https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -O wait-for-it.sh
+        chmod +x wait-for-it.sh
 
     - name: Create .env file
       run: |
@@ -31,6 +42,8 @@ jobs:
         echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> product/.env
         echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> product/.env
 
+
+
     - name: Install dependencies
       run: |
         cd auth
@@ -40,6 +53,12 @@ jobs:
         npm ci
         cd ..
         npm ci
+
+    - name: ⏱️ Wait for MongoDB to be ready
+      run: |
+        # Chờ container MongoDB sẵn sàng (sử dụng hostname 'mongodb')
+        ./wait-for-it.sh mongodb:27017 --timeout=60 -- echo "MongoDB is ready!" 
+        # Cần thiết vì các test của Auth và Product đều cần DB
 
     - name: Run tests for auth
       run: |
@@ -51,6 +70,10 @@ jobs:
         cd auth
         nohup npm start &>/dev/null &
         sleep 10  # đợi auth khởi động hoàn toàn
+        # Quay lại thư mục gốc để chạy wait-for-it
+        cd ..
+        # Chờ service Auth mở cổng 3000
+        ./wait-for-it.sh localhost:3000 --timeout=30 -- echo "Auth Service is up and running!"
 
     - name: Create test user for product tests
       run: |
