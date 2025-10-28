@@ -1,0 +1,23 @@
+# Sử dụng image Node chính thức
+FROM node:18
+
+# Thiết lập thư mục làm việc trong container
+WORKDIR /app
+
+# Sao chép package.json và package-lock.json (nếu có)
+COPY package*.json ./
+
+# Cài đặt dependencies
+RUN npm install
+
+# Sao chép toàn bộ source code còn lại
+COPY . .
+
+# Expose cổng 8080 (nếu bạn dùng port khác thì đổi)
+EXPOSE 8080
+
+# Khai báo biến môi trường mặc định (nếu không có .env)
+ENV PORT=8080
+
+# Lệnh chạy ứng dụng
+CMD ["npm", "start"]
