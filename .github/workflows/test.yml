@@ -100,8 +100,8 @@ jobs:
     services:
       mongodb:
         image: mongo:6
-        ports:
-          - 27017:27017
+        # ports:
+        #   - 27017:27017
         options: >-
           --name mongodb_ci
           --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
@@ -123,12 +123,12 @@ jobs:
       - name: Create .env files
         run: |
           # BẮT BUỘC: Sử dụng tên service 'mongodb' trong URI khi test CI
-          echo "MONGODB_AUTH_URI=localhost://mongodb:27017/test_auth" >> auth/.env
+          echo "MONGODB_AUTH_URI=mongodb://mongodb:27017/test_auth" >> auth/.env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> auth/.env
 
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> product/.env
           # Product cũng kết nối đến MongoDB service container
-          echo "MONGODB_PRODUCT_URI=localhost://mongodb:27017/test_product" >> product/.env
+          echo "MONGODB_PRODUCT_URI=mongodb://mongodb:27017/test_product" >> product/.env
           echo "AUTH_URL=http://localhost:3000" >> product/.env 
           echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> product/.env
           echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> product/.env
