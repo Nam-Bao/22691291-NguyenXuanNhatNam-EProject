@@ -109,7 +109,7 @@ class ProductController {
       res.status(500).json({ message: "Server error" });
     }
   }
-  async getProductId(req, res, next) {
+  async getProductsId(req, res, next) {
         try {
             const token = req.headers.authorization;
             if (!token) {
