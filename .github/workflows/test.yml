@@ -97,9 +97,12 @@ jobs:
     runs-on: ubuntu-latest
 
     # 1. Khai báo MongoDB Service với tên service là 'mongodb'
+    container:
+      image: node:20 # Sử dụng Node.js container làm Runner chính
+
     services:
       mongodb:
-        image: mongo:6
+        image: mongo:7
         # ports:
         #   - 27017:27017
         options: >-
@@ -112,6 +115,9 @@ jobs:
     steps:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v4
+        # Thêm thư mục làm việc để các lệnh chạy trong Container biết đường dẫn
+        with:
+          path: app # Checkout code vào thư mục 'app' bên trong Node container
         
       # Cài đặt công cụ chờ (wait-for-it.sh)
       - name: Install wait-for-it.sh
@@ -121,10 +127,10 @@ jobs:
 
       # 2. Tạo .env files (Sử dụng hostname của service container)
       - name: Create .env files
-        run: |
+        run: |                        
           # BẮT BUỘC: Sử dụng tên service 'mongodb' trong URI khi test CI
-          echo "MONGODB_AUTH_URI=mongodb://mongodb:27017/test_auth" >> auth/.env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> auth/.env
+          echo "MONGODB_AUTH_URI=mongodb://mongodb:27017/test_auth" >> app/auth/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> app/auth/.env
 
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> product/.env
           # Product cũng kết nối đến MongoDB service container
@@ -136,9 +142,16 @@ jobs:
       # 3. Cài đặt Dependencies
       - name: Install dependencies
         run: |
-          npm ci 
-          npm ci --prefix auth
-          npm ci --prefix product
+          # npm ci 
+          # npm ci --prefix auth
+          # npm ci --prefix product
+          cd app/auth
+          npm ci
+          cd ../product
+          npm ci
+          cd ..
+          npm ci
+
 
       # # 4. CHỜ MONGODB sẵn sàng trước khi chạy bất kỳ tests nào
       # - name: ⏱️ Wait for MongoDB to be ready
@@ -149,14 +162,14 @@ jobs:
       # 5. Chạy Tests cho Auth Service (Tăng Timeout)
       - name: Run tests for auth
         run: |
-          cd auth
+          cd app/auth
           # Tăng timeout của Mocha lên 30s để cho các thao tác DB bị treo có thêm thời gian
           npm test -- --timeout 30000 
           
       # 6. Chạy Auth Service làm phụ thuộc cho Product
       - name: Start Auth Service and wait
         run: |
-          cd auth
+          cd app/auth
           # Khởi động Auth Service ở chế độ nền
           nohup npm start &>/dev/null &
           
