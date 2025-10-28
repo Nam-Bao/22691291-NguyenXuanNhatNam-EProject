@@ -123,12 +123,12 @@ jobs:
       - name: Create .env files
         run: |
           # BẮT BUỘC: Sử dụng tên service 'mongodb' trong URI khi test CI
-          echo "MONGODB_AUTH_URI=mongodb://mongodb:27017/test_auth" >> auth/.env
+          echo "MONGODB_AUTH_URI=localhost://mongodb:27017/test_auth" >> auth/.env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> auth/.env
 
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> product/.env
           # Product cũng kết nối đến MongoDB service container
-          echo "MONGODB_PRODUCT_URI=mongodb://mongodb:27017/test_product" >> product/.env
+          echo "MONGODB_PRODUCT_URI=localhost://mongodb:27017/test_product" >> product/.env
           echo "AUTH_URL=http://localhost:3000" >> product/.env 
           echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> product/.env
           echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> product/.env
@@ -140,11 +140,11 @@ jobs:
           npm ci --prefix auth
           npm ci --prefix product
 
-      # 4. CHỜ MONGODB sẵn sàng trước khi chạy bất kỳ tests nào
-      - name: ⏱️ Wait for MongoDB to be ready
-        run: |
-          # Chờ MongoDB mở cổng 27017 (sử dụng hostname 'mongodb')
-          ./wait-for-it.sh mongodb:27017 --timeout=60 -- echo "MongoDB is ready!" 
+      # # 4. CHỜ MONGODB sẵn sàng trước khi chạy bất kỳ tests nào
+      # - name: ⏱️ Wait for MongoDB to be ready
+      #   run: |
+      #     # Chờ MongoDB mở cổng 27017 (sử dụng hostname 'mongodb')
+      #     ./wait-for-it.sh mongodb:27017 --timeout=60 -- echo "MongoDB is ready!" 
           
       # 5. Chạy Tests cho Auth Service (Tăng Timeout)
       - name: Run tests for auth
