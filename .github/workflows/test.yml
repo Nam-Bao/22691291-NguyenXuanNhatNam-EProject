@@ -99,6 +99,7 @@ jobs:
     # 1. Khai báo MongoDB Service với tên service là 'mongodb'
     container:
       image: node:20 # Sử dụng Node.js container làm Runner chính
+      options: --network my_test_network # Đặt tên cho mạng nội bộ
 
     services:
       mongodb:
@@ -106,7 +107,9 @@ jobs:
         # ports:
         #   - 27017:27017
         options: >-
-          --name mongodb_ci
+          --name mongodb_ci 
+          --network my_test_network # Gán service vào cùng mạng
+          --network-alias mongodb # Tên alias cho Node container tìm kiếm
           --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
           --health-interval 10s
           --health-timeout 5s
@@ -132,25 +135,21 @@ jobs:
           echo "MONGODB_AUTH_URI=mongodb://mongodb:27017/test_auth" >> app/auth/.env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> app/auth/.env
 
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> product/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> app/product/.env
           # Product cũng kết nối đến MongoDB service container
-          echo "MONGODB_PRODUCT_URI=mongodb://mongodb:27017/test_product" >> product/.env
-          echo "AUTH_URL=http://localhost:3000" >> product/.env 
-          echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> product/.env
-          echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> product/.env
+          echo "MONGODB_PRODUCT_URI=mongodb://mongodb:27017/test_product" >> app/product/.env
+          echo "AUTH_URL=http://localhost:3000" >> app/product/.env 
+          echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> app/product/.env
+          echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> app/product/.env
 
       # 3. Cài đặt Dependencies
       - name: Install dependencies
         run: |
-          # npm ci 
-          # npm ci --prefix auth
-          # npm ci --prefix product
-          cd app/auth
-          npm ci
-          cd ../product
-          npm ci
-          cd ..
-          npm ci
+          cd app
+          npm ci 
+          npm ci --prefix auth
+          npm ci --prefix product
+
 
 
       # # 4. CHỜ MONGODB sẵn sàng trước khi chạy bất kỳ tests nào
@@ -189,6 +188,6 @@ jobs:
       # 8. Chạy Tests cho Product Service
       - name: Run tests for product
         run: |
-          cd product
+          cd app/product
           # Tăng timeout tương tự để tránh lỗi Timeout 20000ms
           npm test -- --timeout 30000
