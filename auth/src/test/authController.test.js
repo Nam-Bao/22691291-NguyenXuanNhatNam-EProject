@@ -85,7 +85,7 @@ const chai = require("chai");
 const chaiHttp = require("chai-http");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 const mongoose = require("mongoose");
-const { app, connectDB } = require("../../app");
+const { app, connectDB } = require("../app");
 
 chai.use(chaiHttp);
 const expect = chai.expect;
