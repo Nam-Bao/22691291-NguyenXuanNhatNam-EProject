@@ -122,7 +122,7 @@ jobs:
       # Cài đặt công cụ chờ (wait-for-it.sh)
       - name: Install wait-for-it.sh
         run: |
-          wget https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -O wait-for-it.sh
+          wget https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -O app/wait-for-it.sh
           chmod +x app/wait-for-it.sh
 
       # 2. Tạo .env files (Sử dụng hostname của service container)
