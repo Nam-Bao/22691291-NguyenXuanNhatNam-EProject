@@ -19,6 +19,8 @@
   },
   "devDependencies": {
     "dotenv": "^16.0.3",
-    "mocha": "^11.7.4"
+    "mocha": "^11.7.4",
+    "chai": "^4.3.10",
+    "chai-http": "^4.3.0"
   }
 }
