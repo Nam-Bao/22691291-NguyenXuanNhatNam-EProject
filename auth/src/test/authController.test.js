@@ -7,41 +7,20 @@ require("dotenv").config();
 chai.use(chaiHttp);
 const { expect } = chai;
 
-// describe("User Authentication", () => {
-//   let app;
+describe("User Authentication", () => {
+  let app;
 
-//   before(async () => {
-//     app = new App();
-//     await app.connectDB();
-//     app.start();
-//   });
+  before(async () => {
+    app = new App();
+    await app.connectDB();
+    app.start();
+  });
 
-//   after(async () => {
-//     await app.authController.authService.deleteTestUsers();
-//     await app.disconnectDB();
-//     app.stop();
-//   });
-
-  describe("User Authentication", () => {
-      let app;
-
-      before(async () => {
-          app = new App();
-          // 🚨 THAY ĐỔI: Chờ kết nối DB HOÀN TẤT
-          await app.connectDB(); 
-          
-          // Cần thêm một chút thời gian an toàn cho Mongoose hoàn tất setup (300ms-1s là đủ)
-          await new Promise(resolve => setTimeout(resolve, 500)); 
-          
-          app.start();
-      });
-
-      after(async () => {
-          // Tùy chọn: Đảm bảo ngắt kết nối Mongoose và xóa dữ liệu
-          await app.deleteTestUsers();
-          await app.disconnectDB(); 
-          app.stop();
-      });
+  after(async () => {
+    await app.authController.authService.deleteTestUsers();
+    await app.disconnectDB();
+    app.stop();
+  });
 
   describe("POST /register", () => {
     it("should register a new user", async () => {
