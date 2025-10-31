@@ -1,9 +1,9 @@
-name: CI
-on: [push, pull_request]
-
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    env:
+      MONGODB_HOST: mongodb
 
     services:
       mongodb:
@@ -17,49 +17,36 @@ jobs:
           --health-retries 5
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3.2.0
+      - name: Checkout code
+        uses: actions/checkout@v3.2.0
 
-    - name: Create .env file
-      run: |
-        # Dùng MongoDB local trong GitHub Actions
-        echo "MONGODB_AUTH_URI=mongodb://mongodb:27017/test_auth" >> auth/.env
-        echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> auth/.env
+      - name: Create .env file
+        run: |
+          echo "MONGODB_AUTH_URI=mongodb://${MONGODB_HOST}:27017/test_auth" >> auth/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> auth/.env
+          echo "MONGODB_PRODUCT_URI=mongodb://${MONGODB_HOST}:27017/test_product" >> product/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> product/.env
+          echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> product/.env
+          echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> product/.env
 
-        echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> product/.env
-        echo "MONGODB_PRODUCT_URI=mongodb://mongodb:27017/test_product" >> product/.env
-        echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> product/.env
-        echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> product/.env
+      - name: Install dependencies
+        run: |
+          cd auth && npm ci
+          cd ../product && npm ci
+          cd ..
 
-    - name: Install dependencies
-      run: |
-        cd auth
-        npm ci
-        cd ..
-        cd product
-        npm ci
-        cd ..
-        npm ci
+      - name: Wait for MongoDB to be ready
+        run: |
+          for i in {1..10}; do
+            if mongosh "mongodb://${MONGODB_HOST}:27017/test_auth" --eval "db.runCommand({ ping: 1 })"; then
+              echo "MongoDB is ready!"
+              break
+            fi
+            echo "Waiting for MongoDB..."
+            sleep 5
+          done
 
-    - name: Run tests for auth
-      run: |
-        cd auth
-        npm test -- --timeout 30000 --exit
-
-    - name: Start auth service
-      run: |
-        cd auth
-        nohup npm start &>/dev/null &
-        sleep 10  # đợi auth khởi động hoàn toàn
-
-    - name: Create test user for product tests
-      run: |
-        curl -X POST http://localhost:3000/register \
-          -H "Content-Type: application/json" \
-          -d '{"username": "'${{ secrets.LOGIN_TEST_USER }}'", "password": "'${{ secrets.LOGIN_TEST_PASSWORD }}'"}' \
-          || true  # bỏ qua lỗi nếu user đã tồn tại
-
-    - name: Run tests for product
-      run: |
-        cd product
-        npm test
+      - name: Run tests for auth
+        run: |
+          cd auth
+          npm test -- --timeout 30000 --exit
