@@ -23,11 +23,11 @@ jobs:
     - name: Create .env file
       run: |
         # Dùng MongoDB local trong GitHub Actions
-        echo "MONGODB_AUTH_URI=mongodb://localhost:27017/test_auth" >> auth/.env
+        echo "MONGODB_AUTH_URI=mongodb://mongodb:27017/test_auth" >> auth/.env
         echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> auth/.env
 
         echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> product/.env
-        echo "MONGODB_PRODUCT_URI=mongodb://localhost:27017/test_product" >> product/.env
+        echo "MONGODB_PRODUCT_URI=mongodb://mongodb:27017/test_product" >> product/.env
         echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> product/.env
         echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> product/.env
 
