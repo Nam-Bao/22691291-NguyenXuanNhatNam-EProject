@@ -24,9 +24,9 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "MONGODB_AUTH_URI=mongodb://${MONGODB_HOST}:27017/test_auth" >> auth/.env
+          echo "MONGODB_AUTH_URI=mongodb://127.0.0.1:27017/test_auth" >> auth/.env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> auth/.env
-          echo "MONGODB_PRODUCT_URI=mongodb://${MONGODB_HOST}:27017/test_product" >> product/.env
+          echo "MONGODB_PRODUCT_URI=mongodb://127.0.0.1:27017/test_product" >> product/.env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> product/.env
           echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> product/.env
           echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> product/.env
@@ -47,8 +47,6 @@ jobs:
             echo "Waiting for MongoDB..."
             sleep 5
           done
-      - name: Install Chai
-        run: npm install -g chai
 
       - name: Run tests for auth
         run: |
