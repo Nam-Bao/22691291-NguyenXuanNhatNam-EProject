@@ -47,6 +47,8 @@ jobs:
             echo "Waiting for MongoDB..."
             sleep 5
           done
+      - name: Install Chai
+        run: npm install -g chai
 
       - name: Run tests for auth
         run: |
