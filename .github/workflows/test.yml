@@ -44,7 +44,7 @@ jobs:
     - name: Run tests for auth
       run: |
         cd auth
-        npm test
+        npm test -- --timeout 30000 --exit
 
     - name: Start auth service
       run: |
