@@ -13,7 +13,7 @@ describe("User Authentication", () => {
   before(async () => {
     app = new App();
     await app.connectDB();
-    app.start();
+    await app.start();
   });
 
   after(async () => {

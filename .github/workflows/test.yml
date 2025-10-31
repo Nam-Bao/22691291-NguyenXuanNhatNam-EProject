@@ -18,48 +18,47 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3.2.0
+      uses: actions/checkout@v4
 
-    - name: Create .env file
+    - name: Create .env files
       run: |
-        # Dùng MongoDB local trong GitHub Actions
         echo "MONGODB_AUTH_URI=mongodb://localhost:27017/test_auth" >> auth/.env
         echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> auth/.env
 
-        echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> product/.env
         echo "MONGODB_PRODUCT_URI=mongodb://localhost:27017/test_product" >> product/.env
+        echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> product/.env
         echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> product/.env
         echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> product/.env
 
     - name: Install dependencies
       run: |
-        cd auth
-        npm ci
+        cd auth && npm ci
+        cd ../product && npm ci
         cd ..
-        cd product
-        npm ci
-        cd ..
-        npm ci
 
-    - name: Run tests for auth
-      run: |
-        cd auth
-        npm test
-
+    # ✅ Start the auth service first
     - name: Start auth service
       run: |
         cd auth
         nohup npm start &>/dev/null &
-        sleep 10  # đợi auth khởi động hoàn toàn
+        sleep 10 # đợi server khởi động hoàn toàn
 
-    - name: Create test user for product tests
+    # ✅ Run tests for auth (server đã sẵn sàng)
+    - name: Run auth tests
+      run: |
+        cd auth
+        npm test
+
+    # ✅ Tạo test user cho product tests
+    - name: Create test user for product
       run: |
         curl -X POST http://localhost:3000/register \
           -H "Content-Type: application/json" \
           -d '{"username": "'${{ secrets.LOGIN_TEST_USER }}'", "password": "'${{ secrets.LOGIN_TEST_PASSWORD }}'"}' \
-          || true  # bỏ qua lỗi nếu user đã tồn tại
+          || true
 
-    - name: Run tests for product
+    # ✅ Chạy test cho product
+    - name: Run product tests
       run: |
         cd product
         npm test
