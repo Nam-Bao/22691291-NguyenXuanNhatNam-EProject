@@ -1,93 +1,3 @@
-# name: CI
-# on: [push, pull_request]
-
-# jobs:
-#   test:
-#     runs-on: ubuntu-latest
-
-#     services:
-#       mongodb:
-#         image: mongo:6
-#         ports:
-#           - 27017:27017
-#         options: >-
-#           --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
-#           --health-interval 10s
-#           --health-timeout 5s
-#           --health-retries 5
-#       rabbitmq: 
-#         image: rabbitmq:3-management
-#         ports:
-#           - 5672:5672
-#         options: >-
-#           --hostname rabbitmq
-
-#     steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v3.2.0
-
-#     - name: Install wait-for-it
-#       run: |
-#         wget https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -O wait-for-it.sh
-#         chmod +x wait-for-it.sh
-
-#     - name: Create .env file
-#       run: |
-#         # Dùng MongoDB local trong GitHub Actions
-#         echo "MONGODB_AUTH_URI=mongodb://localhost:27017/test_auth" >> auth/.env
-#         echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> auth/.env
-
-#         echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> product/.env
-#         echo "MONGODB_PRODUCT_URI=mongodb://localhost:27017/test_product" >> product/.env
-#         echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> product/.env
-#         echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> product/.env
-
-
-
-#     - name: Install dependencies
-#       run: |
-#         cd auth
-#         npm ci
-#         cd ..
-#         cd product
-#         npm ci
-#         cd ..
-#         npm ci
-
-#     - name: ⏱️ Wait for MongoDB to be ready
-#       run: |
-#         # Chờ container MongoDB sẵn sàng (sử dụng hostname 'mongodb')
-#         ./wait-for-it.sh mongodb:27017 --timeout=60 -- echo "MongoDB is ready!" 
-#         # Cần thiết vì các test của Auth và Product đều cần DB
-
-#     - name: Run tests for auth
-#       run: |
-#         cd auth
-#         npm test
-
-#     - name: Start auth service
-#       run: |
-#         cd auth
-#         nohup npm start &>/dev/null &
-#         sleep 10  # đợi auth khởi động hoàn toàn
-#         # Quay lại thư mục gốc để chạy wait-for-it
-#         cd ..
-#         # Chờ service Auth mở cổng 3000
-#         ./wait-for-it.sh localhost:3000 --timeout=30 -- echo "Auth Service is up and running!"
-
-#     - name: Create test user for product tests
-#       run: |
-#         curl -X POST http://localhost:3000/register \
-#           -H "Content-Type: application/json" \
-#           -d '{"username": "'${{ secrets.LOGIN_TEST_USER }}'", "password": "'${{ secrets.LOGIN_TEST_PASSWORD }}'"}' \
-#           || true  # bỏ qua lỗi nếu user đã tồn tại
-
-#     - name: Run tests for product
-#       run: |
-#         cd product
-#         npm test
-
-
 name: CI (Auth & Product)
 
 on: [push, pull_request]
@@ -96,15 +6,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    # 1. Khai báo MongoDB Service với tên service là 'mongodb'
     container:
-      image: node:20 # Sử dụng Node.js container làm Runner chính
+      image: node:20
 
     services:
       mongodb:
         image: mongo:7
-        # ports:
-        #   - 27017:27017
         options: >-
           --name mongodb_ci 
           --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
@@ -112,79 +19,72 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      rabbitmq:
+        image: rabbitmq:3-management
+        options: >-
+          --name rabbitmq_ci
+          --health-cmd "rabbitmq-diagnostics check_running"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v4
-        # Thêm thư mục làm việc để các lệnh chạy trong Container biết đường dẫn
         with:
-          path: app # Checkout code vào thư mục 'app' bên trong Node container
+          path: app
         
-      # Cài đặt công cụ chờ (wait-for-it.sh)
       - name: Install wait-for-it.sh
         run: |
           wget https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -O app/wait-for-it.sh
           chmod +x app/wait-for-it.sh
 
-      # 2. Tạo .env files (Sử dụng hostname của service container)
       - name: Create .env files
-        run: |                        
-          # BẮT BUỘC: Sử dụng tên service 'mongodb' trong URI khi test CI
+        run: |
+          # Auth Service
           echo "MONGODB_AUTH_URI=mongodb://mongodb:27017/test_auth" >> app/auth/.env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> app/auth/.env
-
+          
+          # Product Service
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> app/product/.env
-          # Product cũng kết nối đến MongoDB service container
           echo "MONGODB_PRODUCT_URI=mongodb://mongodb:27017/test_product" >> app/product/.env
-          echo "AUTH_URL=http://localhost:3000" >> app/product/.env 
+          echo "RABBITMQ_URI=amqp://rabbitmq:5672" >> app/product/.env
+          echo "AUTH_URL=http://localhost:3000" >> app/product/.env
           echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> app/product/.env
           echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> app/product/.env
 
-      # 3. Cài đặt Dependencies
       - name: Install dependencies
         run: |
           cd app
-          npm ci 
+          npm ci
           npm ci --prefix auth
           npm ci --prefix product
 
+      - name: ⏱️ Wait for MongoDB and RabbitMQ
+        run: |
+          ./app/wait-for-it.sh mongodb:27017 --timeout=60 -- echo "MongoDB is ready!"
+          ./app/wait-for-it.sh rabbitmq:5672 --timeout=60 -- echo "RabbitMQ is ready!"
 
-
-      # # 4. CHỜ MONGODB sẵn sàng trước khi chạy bất kỳ tests nào
-      # - name: ⏱️ Wait for MongoDB to be ready
-      #   run: |
-      #     # Chờ MongoDB mở cổng 27017 (sử dụng hostname 'mongodb')
-      #     ./wait-for-it.sh mongodb:27017 --timeout=60 -- echo "MongoDB is ready!" 
-          
-      # 5. Chạy Tests cho Auth Service (Tăng Timeout)
       - name: Run tests for auth
         run: |
           cd app/auth
-          # Tăng timeout của Mocha lên 30s để cho các thao tác DB bị treo có thêm thời gian
-          npm test -- --timeout 30000 
-          
-      # 6. Chạy Auth Service làm phụ thuộc cho Product
+          npm test -- --timeout 30000
+
       - name: Start Auth Service and wait
         run: |
           cd app/auth
-          # Khởi động Auth Service ở chế độ nền
           nohup npm start &>/dev/null &
-          
-          # Quay lại thư mục gốc để chờ Auth Service mở cổng 3000
           cd ..
-          ./wait-for-it.sh localhost:3000 --timeout=30 -- echo "Auth Service is up and running on port 3000!"
+          ./wait-for-it.sh localhost:3000 --timeout=30 -- echo "Auth Service is up!"
 
-      # 7. Tạo Test User (Sử dụng cổng 3000)
-      - name: Create test user for product tests
+      - name: Create test user
         run: |
-          # Gửi request đăng ký qua cổng 3000
           curl -X POST http://localhost:3000/register \
             -H "Content-Type: application/json" \
             -d '{"username": "'${{ secrets.LOGIN_TEST_USER }}'", "password": "'${{ secrets.LOGIN_TEST_PASSWORD }}'"}' \
             || true
 
-      # 8. Chạy Tests cho Product Service
       - name: Run tests for product
         run: |
           cd app/product
-          # Tăng timeout tương tự để tránh lỗi Timeout 20000ms
           npm test -- --timeout 30000
