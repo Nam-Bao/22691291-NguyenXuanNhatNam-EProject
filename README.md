@@ -1,4 +1,5 @@
-﻿# EProject-Phase-1
+## 22691291 - Nguyễn Xuân Nhật Nam
+ # EProject-Phase-1
 
 EProject Phase 1 là một hệ thống E-Commerce được xây dựng theo kiến trúc Microservices, bao gồm các dịch vụ chính như:
 
@@ -54,4 +55,5 @@ Build Docker image cho từng service.
 Push image lên Docker Hub (hoặc registry tùy chọn).
 
 Triển khai container tự động qua Docker Compose hoặc server đích.
+
 
